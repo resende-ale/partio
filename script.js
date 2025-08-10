@@ -5,6 +5,9 @@ let appData = {
     customSplits: {}
 };
 
+// Configurações
+const DEFAULT_PART_VALUE = 1; // Valor padrão para cada parte
+
 // Inicialização da aplicação
 document.addEventListener('DOMContentLoaded', function() {
     loadData();
@@ -74,7 +77,9 @@ function addMember() {
     
     const member = {
         id: Date.now().toString(),
-        name: name
+        name: name,
+        pixKey: '',
+        pixKeyType: 'cpf' // cpf, email, telefone, aleatoria
     };
     
     appData.members.push(member);
@@ -92,6 +97,75 @@ function removeMember(memberId) {
         saveData();
         updateUI();
     }
+}
+
+function addBulkMembers() {
+    const textarea = document.getElementById('bulk-members');
+    const names = textarea.value.split('\n').map(name => name.trim()).filter(name => name.length > 0);
+    
+    if (names.length === 0) {
+        alert('Por favor, insira pelo menos um nome.');
+        return;
+    }
+    
+    let addedCount = 0;
+    let skippedCount = 0;
+    
+    names.forEach(name => {
+        if (!appData.members.some(member => member.name.toLowerCase() === name.toLowerCase())) {
+            const member = {
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                name: name,
+                pixKey: '',
+                pixKeyType: 'cpf'
+            };
+            appData.members.push(member);
+            addedCount++;
+        } else {
+            skippedCount++;
+        }
+    });
+    
+    saveData();
+    updateUI();
+    
+    textarea.value = '';
+    
+    if (skippedCount > 0) {
+        alert(`${addedCount} membros adicionados com sucesso!\n${skippedCount} nomes já existiam e foram ignorados.`);
+    } else {
+        alert(`${addedCount} membros adicionados com sucesso!`);
+    }
+}
+
+function updatePixKey(memberId, pixKey, pixKeyType) {
+    const member = appData.members.find(m => m.id === memberId);
+    if (member) {
+        member.pixKey = pixKey;
+        member.pixKeyType = pixKeyType;
+        saveData();
+        updateUI();
+    }
+}
+
+function editPixKey(memberId) {
+    const member = appData.members.find(m => m.id === memberId);
+    if (!member) return;
+    
+    const pixKey = prompt('Digite a chave PIX para ' + member.name + ':', member.pixKey || '');
+    if (pixKey === null) return; // Usuário cancelou
+    
+    const pixKeyType = prompt('Tipo da chave PIX (cpf, email, telefone, aleatoria):', member.pixKeyType || 'cpf');
+    if (pixKeyType === null) return; // Usuário cancelou
+    
+    // Validar tipo de chave
+    const validTypes = ['cpf', 'email', 'telefone', 'aleatoria'];
+    if (!validTypes.includes(pixKeyType.toLowerCase())) {
+        alert('Tipo de chave inválido. Use: cpf, email, telefone ou aleatoria');
+        return;
+    }
+    
+    updatePixKey(memberId, pixKey.trim(), pixKeyType.toLowerCase());
 }
 
 // Funções de despesas
@@ -114,19 +188,48 @@ function addExpense() {
     let splitDetails = {};
     
     if (splitType === 'custom') {
+        const splitMethod = document.querySelector('input[name="split-method"]:checked').value;
         const customInputs = document.querySelectorAll('#custom-split-inputs input[type="number"]');
         let totalSplit = 0;
         
-        customInputs.forEach(input => {
-            const memberId = input.dataset.memberId;
-            const value = parseFloat(input.value) || 0;
-            splitDetails[memberId] = value;
-            totalSplit += value;
-        });
-        
-        if (Math.abs(totalSplit - amount) > 0.01) {
-            alert(`A soma das divisões (R$ ${totalSplit.toFixed(2)}) deve ser igual ao valor total (R$ ${amount.toFixed(2)}).`);
-            return;
+        if (splitMethod === 'parts') {
+            // Divisão por partes
+            let totalParts = 0;
+            const partsPerMember = {};
+            
+            customInputs.forEach(input => {
+                const memberId = input.dataset.memberId;
+                const parts = parseInt(input.value) || 0;
+                partsPerMember[memberId] = parts;
+                totalParts += parts;
+            });
+            
+            if (totalParts === 0) {
+                alert('A soma das partes deve ser maior que zero.');
+                return;
+            }
+            
+            // Calcular valores baseados nas partes
+            const valuePerPart = amount / totalParts;
+            customInputs.forEach(input => {
+                const memberId = input.dataset.memberId;
+                const parts = partsPerMember[memberId];
+                splitDetails[memberId] = parts * valuePerPart;
+            });
+            
+        } else {
+            // Divisão por valores diretos
+            customInputs.forEach(input => {
+                const memberId = input.dataset.memberId;
+                const value = parseFloat(input.value) || 0;
+                splitDetails[memberId] = value;
+                totalSplit += value;
+            });
+            
+            if (Math.abs(totalSplit - amount) > 0.01) {
+                alert(`A soma das divisões (R$ ${totalSplit.toFixed(2)}) deve ser igual ao valor total (R$ ${amount.toFixed(2)}).`);
+                return;
+            }
         }
     }
     
@@ -163,7 +266,16 @@ function removeExpense(expenseId) {
 // Funções de divisão personalizada
 function updateCustomSplitInputs() {
     const container = document.getElementById('custom-split-inputs');
+    const summary = document.getElementById('split-summary');
     container.innerHTML = '';
+    
+    if (appData.members.length === 0) {
+        container.innerHTML = '<p>Adicione membros primeiro para configurar a divisão.</p>';
+        summary.style.display = 'none';
+        return;
+    }
+    
+    const splitMethod = document.querySelector('input[name="split-method"]:checked').value;
     
     appData.members.forEach(member => {
         const div = document.createElement('div');
@@ -175,15 +287,51 @@ function updateCustomSplitInputs() {
         
         const input = document.createElement('input');
         input.type = 'number';
-        input.step = '0.01';
+        input.step = splitMethod === 'parts' ? '1' : '0.01';
         input.min = '0';
-        input.placeholder = 'R$ 0,00';
+        input.placeholder = splitMethod === 'parts' ? 'Partes' : 'R$ 0,00';
         input.dataset.memberId = member.id;
+        input.dataset.splitMethod = splitMethod;
+        
+        // Adicionar event listener para atualizar o resumo
+        input.addEventListener('input', updateSplitSummary);
         
         div.appendChild(label);
         div.appendChild(input);
         container.appendChild(div);
     });
+    
+    updateSplitSummary();
+}
+
+function updateSplitSummary() {
+    const summary = document.getElementById('split-summary');
+    const totalPartsSpan = document.getElementById('total-parts');
+    const valuePerPartSpan = document.getElementById('value-per-part');
+    
+    const splitMethod = document.querySelector('input[name="split-method"]:checked').value;
+    const expenseAmount = parseFloat(document.getElementById('expense-amount').value) || 0;
+    
+    if (splitMethod === 'parts') {
+        const inputs = document.querySelectorAll('#custom-split-inputs input[data-split-method="parts"]');
+        let totalParts = 0;
+        
+        inputs.forEach(input => {
+            totalParts += parseInt(input.value) || 0;
+        });
+        
+        totalPartsSpan.textContent = totalParts;
+        
+        if (totalParts > 0 && expenseAmount > 0) {
+            const valuePerPart = expenseAmount / totalParts;
+            valuePerPartSpan.textContent = `R$ ${valuePerPart.toFixed(2)}`;
+            summary.style.display = 'block';
+        } else {
+            summary.style.display = 'none';
+        }
+    } else {
+        summary.style.display = 'none';
+    }
 }
 
 // Funções de cálculo
@@ -316,12 +464,25 @@ function updateMembersList() {
     
     let html = '';
     appData.members.forEach(member => {
+        const hasPixKey = member.pixKey && member.pixKey.trim() !== '';
+        const pixKeyDisplay = hasPixKey ? 
+            `<div class="pix-key-info">
+                <i class="fas fa-qrcode"></i> ${member.pixKeyType.toUpperCase()}: ${member.pixKey}
+             </div>` : 
+            '<div class="pix-key-info no-pix">
+                <i class="fas fa-plus-circle"></i> Adicionar chave PIX
+             </div>';
+        
         html += `
             <div class="member-card">
                 <div class="member-info">
                     <div class="member-name">${member.name}</div>
+                    ${pixKeyDisplay}
                 </div>
                 <div class="member-actions">
+                    <button onclick="editPixKey('${member.id}')" class="btn btn-outline btn-small">
+                        <i class="fas fa-qrcode"></i> PIX
+                    </button>
                     <button onclick="removeMember('${member.id}')" class="btn btn-danger btn-small">
                         <i class="fas fa-trash"></i>
                     </button>
