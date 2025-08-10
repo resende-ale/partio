@@ -99,44 +99,7 @@ function removeMember(memberId) {
     }
 }
 
-function addBulkMembers() {
-    const textarea = document.getElementById('bulk-members');
-    const names = textarea.value.split('\n').map(name => name.trim()).filter(name => name.length > 0);
-    
-    if (names.length === 0) {
-        alert('Por favor, insira pelo menos um nome.');
-        return;
-    }
-    
-    let addedCount = 0;
-    let skippedCount = 0;
-    
-    names.forEach(name => {
-        if (!appData.members.some(member => member.name.toLowerCase() === name.toLowerCase())) {
-            const member = {
-                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-                name: name,
-                pixKey: '',
-                pixKeyType: 'cpf'
-            };
-            appData.members.push(member);
-            addedCount++;
-        } else {
-            skippedCount++;
-        }
-    });
-    
-    saveData();
-    updateUI();
-    
-    textarea.value = '';
-    
-    if (skippedCount > 0) {
-        alert(`${addedCount} membros adicionados com sucesso!\n${skippedCount} nomes já existiam e foram ignorados.`);
-    } else {
-        alert(`${addedCount} membros adicionados com sucesso!`);
-    }
-}
+
 
 function updatePixKey(memberId, pixKey, pixKeyType) {
     const member = appData.members.find(m => m.id === memberId);
