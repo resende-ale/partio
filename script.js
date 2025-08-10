@@ -526,8 +526,10 @@ function calculateBalances() {
     
     // Aplicar pagamentos aos saldos
     appData.payments.forEach(payment => {
-        balances[payment.fromId] -= payment.amount;
-        balances[payment.toId] += payment.amount;
+        // Quando alguém paga, isso REDUZ a dívida
+        // Se Rafa deve R$ 100 para Alexandre e paga R$ 100, a dívida deve ser ZERO
+        balances[payment.fromId] += payment.amount; // Rafa paga, então seu saldo melhora (menos negativo)
+        balances[payment.toId] -= payment.amount;   // Alexandre recebe, então seu saldo piora (menos positivo)
     });
     
     return balances;
