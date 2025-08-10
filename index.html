@@ -134,6 +134,47 @@
                 </div>
             </section>
 
+            <!-- Seção de Sincronização -->
+            <section class="section" id="sync-section">
+                <h2><i class="fas fa-cloud-sync-alt"></i> Sincronização com Google Sheets</h2>
+                <div class="sync-info">
+                    <p>Conecte sua planilha do Google para sincronizar dados entre dispositivos automaticamente.</p>
+                </div>
+                
+                <div class="sync-form">
+                    <div class="form-group">
+                        <label for="spreadsheet-id">ID da Planilha:</label>
+                        <input type="text" id="spreadsheet-id" placeholder="Ex: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms">
+                        <small>Encontre o ID na URL da sua planilha do Google</small>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button onclick="connectToGoogleSheets()" class="btn btn-primary">
+                            <i class="fas fa-link"></i> Conectar Planilha
+                        </button>
+                        <button onclick="syncToSheets()" class="btn btn-success" id="sync-btn" style="display: none;">
+                            <i class="fas fa-sync"></i> Sincronizar Agora
+                        </button>
+                        <button onclick="loadFromSheets()" class="btn btn-info" id="load-btn" style="display: none;">
+                            <i class="fas fa-download"></i> Carregar da Planilha
+                        </button>
+                        <button onclick="disconnectFromSheets()" class="btn btn-outline" id="disconnect-btn" style="display: none;">
+                            <i class="fas fa-unlink"></i> Desconectar
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="sync-status" id="sync-status" style="display: none;">
+                    <div class="status-indicator">
+                        <i class="fas fa-circle"></i>
+                        <span id="status-text">Conectado</span>
+                    </div>
+                    <div class="last-sync">
+                        <small>Última sincronização: <span id="last-sync-time">-</span></small>
+                    </div>
+                </div>
+            </section>
+
             <!-- Seção de Histórico -->
             <section class="section" id="history-section">
                 <h2><i class="fas fa-history"></i> Histórico de Despesas</h2>

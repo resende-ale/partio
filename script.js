@@ -6,6 +6,14 @@ let appData = {
     payments: []
 };
 
+// Configuração do Google Sheets
+let sheetsConfig = {
+    spreadsheetId: null,
+    apiKey: null,
+    isConnected: false,
+    lastSync: null
+};
+
 // Configurações
 const DEFAULT_PART_VALUE = 1; // Valor padrão para cada parte
 
@@ -75,6 +83,16 @@ function setupEventListeners() {
 // Funções de gerenciamento de dados
 function saveData() {
     localStorage.setItem('partioData', JSON.stringify(appData));
+    
+    // Sincronizar automaticamente com Google Sheets se estiver conectado
+    if (sheetsConfig.isConnected) {
+        // Usar setTimeout para evitar múltiplas sincronizações simultâneas
+        setTimeout(() => {
+            syncToSheets().catch(error => {
+                console.error('Erro na sincronização automática:', error);
+            });
+        }, 1000);
+    }
 }
 
 function loadData() {
@@ -91,6 +109,9 @@ function loadData() {
             appData = { members: [], expenses: [], customSplits: {}, payments: [] };
         }
     }
+    
+    // Carregar configuração do Google Sheets
+    loadSheetsConfig();
 }
 
 // Funções de membros
@@ -979,6 +1000,332 @@ function formatCurrency(amount) {
         style: 'currency',
         currency: 'BRL'
     }).format(amount);
+}
+
+// ===== FUNÇÕES DE SINCRONIZAÇÃO COM GOOGLE SHEETS =====
+
+// Função para conectar com Google Sheets
+async function connectToGoogleSheets() {
+    const spreadsheetId = document.getElementById('spreadsheet-id').value.trim();
+    
+    if (!spreadsheetId) {
+        alert('Por favor, insira o ID da planilha do Google Sheets.');
+        return;
+    }
+    
+    try {
+        // Verificar se a planilha existe e é acessível
+        const testUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${getGoogleApiKey()}`;
+        const response = await fetch(testUrl);
+        
+        if (!response.ok) {
+            throw new Error('Não foi possível acessar a planilha. Verifique o ID e as permissões.');
+        }
+        
+        // Salvar configuração
+        sheetsConfig.spreadsheetId = spreadsheetId;
+        sheetsConfig.isConnected = true;
+        sheetsConfig.lastSync = new Date();
+        
+        // Salvar no localStorage
+        localStorage.setItem('partio-sheets-config', JSON.stringify(sheetsConfig));
+        
+        // Atualizar interface
+        updateSyncInterface();
+        
+        // Fazer primeira sincronização
+        await syncToSheets();
+        
+        alert('Conectado com sucesso! Os dados serão sincronizados automaticamente.');
+        
+    } catch (error) {
+        console.error('Erro ao conectar:', error);
+        alert('Erro ao conectar: ' + error.message);
+    }
+}
+
+// Função para sincronizar dados para o Google Sheets
+async function syncToSheets() {
+    if (!sheetsConfig.isConnected || !sheetsConfig.spreadsheetId) {
+        alert('Conecte-se primeiro a uma planilha do Google Sheets.');
+        return;
+    }
+    
+    try {
+        // Preparar dados para envio
+        const dataToSync = {
+            members: appData.members,
+            expenses: appData.expenses,
+            customSplits: appData.customSplits,
+            payments: appData.payments,
+            lastSync: new Date().toISOString()
+        };
+        
+        // Converter para formato de planilha
+        const sheetsData = convertToSheetsFormat(dataToSync);
+        
+        // Enviar para Google Sheets
+        await updateGoogleSheets(sheetsData);
+        
+        // Atualizar configuração
+        sheetsConfig.lastSync = new Date();
+        localStorage.setItem('partio-sheets-config', JSON.stringify(sheetsConfig));
+        
+        // Atualizar interface
+        updateSyncInterface();
+        
+        alert('Dados sincronizados com sucesso!');
+        
+    } catch (error) {
+        console.error('Erro na sincronização:', error);
+        alert('Erro na sincronização: ' + error.message);
+    }
+}
+
+// Função para desconectar do Google Sheets
+function disconnectFromSheets() {
+    if (confirm('Tem certeza que deseja desconectar do Google Sheets?')) {
+        sheetsConfig.isConnected = false;
+        sheetsConfig.spreadsheetId = null;
+        sheetsConfig.lastSync = null;
+        
+        localStorage.removeItem('partio-sheets-config');
+        updateSyncInterface();
+        
+        alert('Desconectado do Google Sheets. Os dados continuarão salvos localmente.');
+    }
+}
+
+// Função para carregar dados do Google Sheets
+async function loadFromSheets() {
+    if (!sheetsConfig.isConnected || !sheetsConfig.spreadsheetId) {
+        return;
+    }
+    
+    try {
+        const data = await fetchGoogleSheetsData();
+        if (data) {
+            // Mesclar dados locais com dados da planilha
+            mergeData(data);
+            updateUI();
+            alert('Dados carregados do Google Sheets com sucesso!');
+        }
+    } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+    }
+}
+
+// Função para converter dados para formato de planilha
+function convertToSheetsFormat(data) {
+    const sheets = {};
+    
+    // Planilha de membros
+    sheets.members = [
+        ['ID', 'Nome', 'PIX Key Type', 'PIX Key', 'Data Criação'],
+        ...data.members.map(member => [
+            member.id,
+            member.name,
+            member.pixKeyType || '',
+            member.pixKey || '',
+            member.createdAt || new Date().toISOString()
+        ])
+    ];
+    
+    // Planilha de despesas
+    sheets.expenses = [
+        ['ID', 'Descrição', 'Valor', 'Pagador ID', 'Tipo Divisão', 'Detalhes Divisão', 'Data'],
+        ...data.expenses.map(expense => [
+            expense.id,
+            expense.description,
+            expense.amount,
+            expense.payerId,
+            expense.splitType,
+            JSON.stringify(expense.splitDetails || {}),
+            expense.date || new Date().toISOString()
+        ])
+    ];
+    
+    // Planilha de pagamentos
+    sheets.payments = [
+        ['ID', 'De', 'Para', 'Valor', 'Descrição', 'Data'],
+        ...data.payments.map(payment => [
+            payment.id,
+            payment.fromId,
+            payment.toId,
+            payment.amount,
+            payment.description || '',
+            payment.date || new Date().toISOString()
+        ])
+    ];
+    
+    return sheets;
+}
+
+// Função para atualizar Google Sheets
+async function updateGoogleSheets(sheetsData) {
+    const apiKey = getGoogleApiKey();
+    const spreadsheetId = sheetsConfig.spreadsheetId;
+    
+    // Atualizar cada planilha
+    for (const [sheetName, data] of Object.entries(sheetsData)) {
+        const range = `${sheetName}!A1`;
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW&key=${apiKey}`;
+        
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                values: data
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Erro ao atualizar planilha ${sheetName}: ${response.statusText}`);
+        }
+    }
+}
+
+// Função para buscar dados do Google Sheets
+async function fetchGoogleSheetsData() {
+    const apiKey = getGoogleApiKey();
+    const spreadsheetId = sheetsConfig.spreadsheetId;
+    
+    const sheets = ['members', 'expenses', 'payments'];
+    const data = {};
+    
+    for (const sheetName of sheets) {
+        const range = `${sheetName}!A:Z`;
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
+        
+        const response = await fetch(url);
+        if (response.ok) {
+            const result = await response.json();
+            data[sheetName] = parseSheetsData(sheetName, result.values || []);
+        }
+    }
+    
+    return data;
+}
+
+// Função para fazer parse dos dados da planilha
+function parseSheetsData(sheetName, rows) {
+    if (rows.length < 2) return []; // Precisa ter cabeçalho + pelo menos uma linha
+    
+    const headers = rows[0];
+    const data = [];
+    
+    for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.length === 0 || !row[0]) continue; // Pular linhas vazias
+        
+        const item = {};
+        headers.forEach((header, index) => {
+            if (row[index] !== undefined) {
+                item[header.toLowerCase().replace(/\s+/g, '')] = row[index];
+            }
+        });
+        
+        data.push(item);
+    }
+    
+    return data;
+}
+
+// Função para mesclar dados
+function mergeData(sheetsData) {
+    // Mesclar membros
+    if (sheetsData.members) {
+        appData.members = sheetsData.members.map(member => ({
+            id: member.id,
+            name: member.nome,
+            pixKeyType: member.pixkeytype,
+            pixKey: member.pixkey,
+            createdAt: member.datacriação
+        }));
+    }
+    
+    // Mesclar despesas
+    if (sheetsData.expenses) {
+        appData.expenses = sheetsData.expenses.map(expense => ({
+            id: expense.id,
+            description: expense.descrição,
+            amount: parseFloat(expense.valor),
+            payerId: expense.pagadorid,
+            splitType: expense.tipodivisão,
+            splitDetails: expense.detalhesdivisão ? JSON.parse(expense.detalhesdivisão) : {},
+            date: expense.data
+        }));
+    }
+    
+    // Mesclar pagamentos
+    if (sheetsData.payments) {
+        appData.payments = sheetsData.payments.map(payment => ({
+            id: payment.id,
+            fromId: payment.de,
+            toId: payment.para,
+            amount: parseFloat(payment.valor),
+            description: payment.descrição,
+            date: payment.data
+        }));
+    }
+    
+    // Salvar dados mesclados
+    saveData();
+}
+
+// Função para obter API Key do Google
+function getGoogleApiKey() {
+    // IMPORTANTE: Substitua pela sua API Key do Google Cloud Console
+    // 1. Acesse: https://console.cloud.google.com
+    // 2. Crie um projeto e ative a Google Sheets API
+    // 3. Crie uma API Key em "Credenciais"
+    // 4. Cole a chave aqui
+    
+    // Para desenvolvimento, você pode usar uma API key pública
+    // Em produção, considere usar autenticação OAuth2
+    return 'SUA_API_KEY_AQUI'; // ⚠️ SUBSTITUA PELA SUA API KEY!
+}
+
+// Função para atualizar interface de sincronização
+function updateSyncInterface() {
+    const syncBtn = document.getElementById('sync-btn');
+    const loadBtn = document.getElementById('load-btn');
+    const disconnectBtn = document.getElementById('disconnect-btn');
+    const syncStatus = document.getElementById('sync-status');
+    const statusText = document.getElementById('status-text');
+    const lastSyncTime = document.getElementById('last-sync-time');
+    
+    if (sheetsConfig.isConnected) {
+        syncBtn.style.display = 'inline-block';
+        loadBtn.style.display = 'inline-block';
+        disconnectBtn.style.display = 'inline-block';
+        syncStatus.style.display = 'block';
+        
+        statusText.textContent = 'Conectado';
+        if (sheetsConfig.lastSync) {
+            lastSyncTime.textContent = new Date(sheetsConfig.lastSync).toLocaleString('pt-BR');
+        }
+    } else {
+        syncBtn.style.display = 'none';
+        loadBtn.style.display = 'none';
+        disconnectBtn.style.display = 'none';
+        syncStatus.style.display = 'none';
+    }
+}
+
+// Função para carregar configuração do Google Sheets
+function loadSheetsConfig() {
+    const saved = localStorage.getItem('partio-sheets-config');
+    if (saved) {
+        try {
+            sheetsConfig = JSON.parse(saved);
+            updateSyncInterface();
+        } catch (e) {
+            console.error('Erro ao carregar configuração do Google Sheets:', e);
+        }
+    }
 }
 
 // Atualizar UI quando a janela ganha foco (para sincronizar dados entre abas)

@@ -40,7 +40,12 @@ Um aplicativo web para dividir despesas entre membros de um grupo, similar ao Sp
 - Clique em "Simplificar" para otimizar as transferências
 - O sistema calcula a forma mais eficiente de quitar as dívidas
 
-### 5. Exportar/Importar Dados
+### 5. Sincronizar com Google Sheets
+- **Conecte sua planilha** para sincronização automática entre dispositivos
+- **Acesse de qualquer lugar** - computador, celular, tablet
+- **Backup automático** na nuvem do Google
+
+### 6. Exportar/Importar Dados
 - **Exportar**: Clique em "Exportar Dados" para baixar um arquivo JSON
 - **Importar**: Clique em "Importar Dados" e cole os dados exportados
 
@@ -50,6 +55,7 @@ Um aplicativo web para dividir despesas entre membros de um grupo, similar ao Sp
 - **CSS3**: Estilos modernos com gradientes e animações
 - **JavaScript Vanilla**: Lógica da aplicação sem dependências
 - **LocalStorage**: Persistência de dados no navegador
+- **Google Sheets API**: Sincronização em nuvem entre dispositivos
 - **Font Awesome**: Ícones bonitos e intuitivos
 
 ## 📱 Responsividade
