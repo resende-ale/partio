@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Partio - Divisor de Despesas</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-receipt"></i> Partio</h1>
+            <p>Divisor de despesas para viagens em grupo</p>
+        </header>
+
+        <main class="main-content">
+            <!-- Seção de Membros -->
+            <section class="section" id="members-section">
+                <h2><i class="fas fa-users"></i> Membros do Grupo</h2>
+                <div class="add-member">
+                    <input type="text" id="member-name" placeholder="Nome do membro" maxlength="30">
+                    <button onclick="addMember()" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Adicionar
+                    </button>
+                </div>
+                <div id="members-list" class="members-list"></div>
+            </section>
+
+            <!-- Seção de Despesas -->
+            <section class="section" id="expenses-section">
+                <h2><i class="fas fa-credit-card"></i> Registrar Despesa</h2>
+                <div class="expense-form">
+                    <div class="form-row">
+                        <input type="text" id="expense-description" placeholder="Descrição da despesa" maxlength="100">
+                        <input type="number" id="expense-amount" placeholder="Valor (R$)" step="0.01" min="0">
+                    </div>
+                    <div class="form-row">
+                        <select id="expense-payer">
+                            <option value="">Quem pagou?</option>
+                        </select>
+                        <select id="expense-split-type">
+                            <option value="equal">Dividir igualmente</option>
+                            <option value="custom">Divisão personalizada</option>
+                        </select>
+                    </div>
+                    <div id="custom-split" class="custom-split" style="display: none;">
+                        <h4>Divisão personalizada:</h4>
+                        <div id="custom-split-inputs"></div>
+                    </div>
+                    <button onclick="addExpense()" class="btn btn-success">
+                        <i class="fas fa-save"></i> Registrar Despesa
+                    </button>
+                </div>
+            </section>
+
+            <!-- Seção de Resumo -->
+            <section class="section" id="summary-section">
+                <h2><i class="fas fa-chart-pie"></i> Resumo das Despesas</h2>
+                <div class="summary-cards">
+                    <div class="summary-card">
+                        <h3>Total Gasto</h3>
+                        <p id="total-amount">R$ 0,00</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Por Pessoa</h3>
+                        <p id="per-person">R$ 0,00</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Membros</h3>
+                        <p id="member-count">0</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Seção de Balanços -->
+            <section class="section" id="balances-section">
+                <h2><i class="fas fa-balance-scale"></i> Balanços Individuais</h2>
+                <div id="balances-list" class="balances-list"></div>
+            </section>
+
+            <!-- Seção de Simplificação -->
+            <section class="section" id="simplify-section">
+                <h2><i class="fas fa-magic"></i> Simplificar Débitos</h2>
+                <button onclick="simplifyDebts()" class="btn btn-warning">
+                    <i class="fas fa-magic"></i> Simplificar
+                </button>
+                <div id="simplified-debts" class="simplified-debts"></div>
+            </section>
+
+            <!-- Seção de Histórico -->
+            <section class="section" id="history-section">
+                <h2><i class="fas fa-history"></i> Histórico de Despesas</h2>
+                <div id="expenses-history" class="expenses-history"></div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>&copy; 2024 Partio - Divisor de Despesas</p>
+            <div class="footer-actions">
+                <button onclick="exportData()" class="btn btn-outline">
+                    <i class="fas fa-download"></i> Exportar Dados
+                </button>
+                <button onclick="importData()" class="btn btn-outline">
+                    <i class="fas fa-upload"></i> Importar Dados
+                </button>
+                <button onclick="clearAllData()" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Limpar Tudo
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modal para importar dados -->
+    <div id="import-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>Importar Dados</h3>
+            <textarea id="import-textarea" placeholder="Cole aqui os dados exportados..."></textarea>
+            <div class="modal-actions">
+                <button onclick="confirmImport()" class="btn btn-primary">Importar</button>
+                <button onclick="closeImportModal()" class="btn btn-outline">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input file oculto para import -->
+    <input type="file" id="file-input" accept=".json" style="display: none;" onchange="handleFileImport(event)">
+
+    <script src="script.js"></script>
+</body>
+</html>
