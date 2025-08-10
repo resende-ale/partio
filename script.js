@@ -41,6 +41,20 @@ function setupEventListeners() {
             addExpense();
         }
     });
+
+    // Enter para salvar chave PIX
+    document.getElementById('pix-key-value').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            savePixKey();
+        }
+    });
+
+    // Fechar modal PIX ao clicar fora
+    document.getElementById('pix-modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closePixModal();
+        }
+    });
 }
 
 // Funções de gerenciamento de dados
@@ -111,24 +125,133 @@ function updatePixKey(memberId, pixKey, pixKeyType) {
     }
 }
 
+// Variáveis globais para o modal PIX
+let currentPixMemberId = null;
+let currentPixType = null;
+
 function editPixKey(memberId) {
-    const member = appData.members.find(m => m.id === memberId);
-    if (!member) return;
+    currentPixMemberId = memberId;
+    currentPixType = null;
     
-    const pixKey = prompt('Digite a chave PIX para ' + member.name + ':', member.pixKey || '');
-    if (pixKey === null) return; // Usuário cancelou
+    // Mostrar modal com seleção de tipo
+    document.getElementById('pix-modal').style.display = 'flex';
+    document.getElementById('pix-type-selection').style.display = 'block';
+    document.getElementById('pix-key-input').style.display = 'none';
     
-    const pixKeyType = prompt('Tipo da chave PIX (cpf, email, telefone, aleatoria):', member.pixKeyType || 'cpf');
-    if (pixKeyType === null) return; // Usuário cancelou
+    // Limpar campo de entrada
+    document.getElementById('pix-key-value').value = '';
+}
+
+function selectPixType(pixType) {
+    currentPixType = pixType;
     
-    // Validar tipo de chave
-    const validTypes = ['cpf', 'email', 'telefone', 'aleatoria'];
-    if (!validTypes.includes(pixKeyType.toLowerCase())) {
-        alert('Tipo de chave inválido. Use: cpf, email, telefone ou aleatoria');
+    // Esconder seleção de tipo e mostrar input da chave
+    document.getElementById('pix-type-selection').style.display = 'none';
+    document.getElementById('pix-key-input').style.display = 'block';
+    
+    // Atualizar placeholder baseado no tipo
+    const input = document.getElementById('pix-key-value');
+    const member = appData.members.find(m => m.id === currentPixMemberId);
+    
+    switch(pixType) {
+        case 'cpf':
+            input.placeholder = 'Digite o CPF (ex: 123.456.789-00)';
+            break;
+        case 'email':
+            input.placeholder = 'Digite o e-mail (ex: usuario@email.com)';
+            break;
+        case 'telefone':
+            input.placeholder = 'Digite o telefone (ex: +55 11 99999-9999)';
+            break;
+        case 'aleatoria':
+            input.placeholder = 'Digite a chave aleatória';
+            break;
+    }
+    
+    // Focar no input
+    input.focus();
+}
+
+function backToPixTypeSelection() {
+    document.getElementById('pix-type-selection').style.display = 'block';
+    document.getElementById('pix-key-input').style.display = 'none';
+    document.getElementById('pix-key-value').value = '';
+}
+
+function savePixKey() {
+    const pixKey = document.getElementById('pix-key-value').value.trim();
+    
+    if (!pixKey) {
+        alert('Por favor, digite a chave PIX.');
         return;
     }
     
-    updatePixKey(memberId, pixKey.trim(), pixKeyType.toLowerCase());
+    if (!currentPixMemberId || !currentPixType) {
+        alert('Erro: dados do membro não encontrados.');
+        return;
+    }
+    
+    // Validar formato baseado no tipo
+    if (!validatePixKey(pixKey, currentPixType)) {
+        return;
+    }
+    
+    // Salvar chave PIX
+    updatePixKey(currentPixMemberId, pixKey, currentPixType);
+    
+    // Fechar modal
+    closePixModal();
+    
+    // Mostrar confirmação
+    const member = appData.members.find(m => m.id === currentPixMemberId);
+    alert(`Chave PIX ${currentPixType.toUpperCase()} para ${member.name} foi salva com sucesso!`);
+}
+
+function validatePixKey(pixKey, pixType) {
+    switch(pixType) {
+        case 'cpf':
+            // Validação básica de CPF (11 dígitos)
+            const cpfClean = pixKey.replace(/\D/g, '');
+            if (cpfClean.length !== 11) {
+                alert('CPF deve ter 11 dígitos.');
+                return false;
+            }
+            break;
+            
+        case 'email':
+            // Validação básica de e-mail
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(pixKey)) {
+                alert('Por favor, insira um e-mail válido.');
+                return false;
+            }
+            break;
+            
+        case 'telefone':
+            // Validação básica de telefone (pelo menos 10 dígitos)
+            const phoneClean = pixKey.replace(/\D/g, '');
+            if (phoneClean.length < 10) {
+                alert('Telefone deve ter pelo menos 10 dígitos.');
+                return false;
+            }
+            break;
+            
+        case 'aleatoria':
+            // Chave aleatória deve ter pelo menos 8 caracteres
+            if (pixKey.length < 8) {
+                alert('Chave aleatória deve ter pelo menos 8 caracteres.');
+                return false;
+            }
+            break;
+    }
+    
+    return true;
+}
+
+function closePixModal() {
+    document.getElementById('pix-modal').style.display = 'none';
+    currentPixMemberId = null;
+    currentPixType = null;
 }
 
 // Funções de despesas

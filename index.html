@@ -124,6 +124,63 @@
         </footer>
     </div>
 
+    <!-- Modal para chave PIX -->
+    <div id="pix-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-qrcode"></i> Configurar Chave PIX</h3>
+                <span class="close" onclick="closePixModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="pix-type-selection" class="pix-type-selection">
+                    <h4>Escolha o tipo da chave PIX:</h4>
+                    <div class="pix-type-options">
+                        <div class="pix-type-option" onclick="selectPixType('cpf')">
+                            <i class="fas fa-id-card"></i>
+                            <div>
+                                <strong>CPF</strong>
+                                <small>Número do CPF</small>
+                            </div>
+                        </div>
+                        <div class="pix-type-option" onclick="selectPixType('email')">
+                            <i class="fas fa-envelope"></i>
+                            <div>
+                                <strong>E-mail</strong>
+                                <small>Endereço de e-mail</small>
+                            </div>
+                        </div>
+                        <div class="pix-type-option" onclick="selectPixType('telefone')">
+                            <i class="fas fa-phone"></i>
+                            <div>
+                                <strong>Telefone</strong>
+                                <small>Número de celular</small>
+                            </div>
+                        </div>
+                        <div class="pix-type-option" onclick="selectPixType('aleatoria')">
+                            <i class="fas fa-key"></i>
+                            <div>
+                                <strong>Chave Aleatória</strong>
+                                <small>Chave gerada pelo banco</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="pix-key-input" class="pix-key-input" style="display: none;">
+                    <h4>Digite a chave PIX:</h4>
+                    <input type="text" id="pix-key-value" placeholder="Digite a chave PIX">
+                    <div class="pix-key-actions">
+                        <button onclick="savePixKey()" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Salvar
+                            </button>
+                        <button onclick="backToPixTypeSelection()" class="btn btn-outline">
+                            <i class="fas fa-arrow-left"></i> Voltar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal para importar dados -->
     <div id="import-modal" class="modal" style="display: none;">
         <div class="modal-content">

@@ -468,6 +468,89 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
     justify-content: flex-end;
 }
 
+/* Modal da chave PIX */
+.pix-type-selection h4 {
+    margin-bottom: 20px;
+    color: #4a5568;
+    text-align: center;
+}
+
+.pix-type-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.pix-type-option {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.pix-type-option:hover {
+    border-color: #667eea;
+    background: #f7fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.pix-type-option i {
+    font-size: 1.5rem;
+    color: #667eea;
+    width: 40px;
+    text-align: center;
+}
+
+.pix-type-option strong {
+    display: block;
+    color: #2d3748;
+    margin-bottom: 5px;
+}
+
+.pix-type-option small {
+    color: #718096;
+    font-size: 0.85rem;
+}
+
+.pix-key-input h4 {
+    margin-bottom: 20px;
+    color: #4a5568;
+    text-align: center;
+}
+
+.pix-key-input input {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    margin-bottom: 20px;
+    transition: border-color 0.3s ease;
+}
+
+.pix-key-input input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.pix-key-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.pix-key-actions .btn {
+    min-width: 120px;
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
     .container {
