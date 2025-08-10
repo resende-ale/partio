@@ -28,6 +28,13 @@ function setupEventListeners() {
         }
     });
 
+    // Mudança no método de divisão (parts/amounts)
+    document.querySelectorAll('input[name="split-method"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            updateSplitInputs();
+        });
+    });
+
     // Enter para adicionar membro
     document.getElementById('member-name').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
@@ -278,6 +285,13 @@ function addExpense() {
         const customInputs = document.querySelectorAll('#custom-split-inputs input[type="number"]');
         let totalSplit = 0;
         
+        // Verificar se há membros selecionados
+        const selectedMembers = getSelectedMembers();
+        if (selectedMembers.length === 0) {
+            alert('Selecione pelo menos um membro para participar da despesa.');
+            return;
+        }
+        
         if (splitMethod === 'parts') {
             // Divisão por partes
             let totalParts = 0;
@@ -351,19 +365,59 @@ function removeExpense(expenseId) {
 
 // Funções de divisão personalizada
 function updateCustomSplitInputs() {
-    const container = document.getElementById('custom-split-inputs');
-    const summary = document.getElementById('split-summary');
+    updateMembersCheckboxes();
+    updateSplitInputs();
+}
+
+function updateMembersCheckboxes() {
+    const container = document.getElementById('members-checkboxes');
     container.innerHTML = '';
     
     if (appData.members.length === 0) {
         container.innerHTML = '<p>Adicione membros primeiro para configurar a divisão.</p>';
+        return;
+    }
+    
+    appData.members.forEach(member => {
+        const div = document.createElement('div');
+        div.className = 'member-checkbox';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `member-${member.id}`;
+        checkbox.dataset.memberId = member.id;
+        checkbox.checked = true; // Por padrão, todos participam
+        
+        const label = document.createElement('label');
+        label.htmlFor = `member-${member.id}`;
+        label.textContent = member.name;
+        
+        // Adicionar event listener para atualizar os inputs quando mudar a seleção
+        checkbox.addEventListener('change', updateSplitInputs);
+        
+        div.appendChild(checkbox);
+        div.appendChild(label);
+        container.appendChild(div);
+    });
+}
+
+function updateSplitInputs() {
+    const container = document.getElementById('custom-split-inputs');
+    const summary = document.getElementById('split-summary');
+    container.innerHTML = '';
+    
+    // Obter membros selecionados
+    const selectedMembers = getSelectedMembers();
+    
+    if (selectedMembers.length === 0) {
+        container.innerHTML = '<p>Selecione pelo menos um membro para participar da despesa.</p>';
         summary.style.display = 'none';
         return;
     }
     
     const splitMethod = document.querySelector('input[name="split-method"]:checked').value;
     
-    appData.members.forEach(member => {
+    selectedMembers.forEach(member => {
         const div = document.createElement('div');
         div.className = 'split-input';
         
@@ -388,6 +442,14 @@ function updateCustomSplitInputs() {
     });
     
     updateSplitSummary();
+}
+
+function getSelectedMembers() {
+    const checkboxes = document.querySelectorAll('#members-checkboxes input[type="checkbox"]:checked');
+    return Array.from(checkboxes).map(checkbox => {
+        const memberId = checkbox.dataset.memberId;
+        return appData.members.find(m => m.id === memberId);
+    }).filter(Boolean);
 }
 
 function updateSplitSummary() {

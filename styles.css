@@ -199,6 +199,56 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
     color: #4a5568;
 }
 
+.members-selection {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f7fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.members-selection h5 {
+    margin: 0 0 15px 0;
+    color: #4a5568;
+    font-size: 0.95rem;
+}
+
+.members-checkboxes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.member-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.member-checkbox:hover {
+    border-color: #667eea;
+    background: #f7fafc;
+}
+
+.member-checkbox input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+}
+
+.member-checkbox label {
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #4a5568;
+    margin: 0;
+    flex: 1;
+}
+
 .split-type-selector {
     margin-bottom: 15px;
     display: flex;
