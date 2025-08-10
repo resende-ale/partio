@@ -2,7 +2,8 @@
 let appData = {
     members: [],
     expenses: [],
-    customSplits: {}
+    customSplits: {},
+    payments: []
 };
 
 // Configurações
@@ -56,6 +57,13 @@ function setupEventListeners() {
         }
     });
 
+    // Enter para registrar pagamento
+    document.getElementById('payment-amount').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            registerPayment();
+        }
+    });
+
     // Fechar modal PIX ao clicar fora
     document.getElementById('pix-modal').addEventListener('click', function(e) {
         if (e.target === this) {
@@ -74,9 +82,13 @@ function loadData() {
     if (saved) {
         try {
             appData = JSON.parse(saved);
+            // Garantir que o campo payments existe para compatibilidade
+            if (!appData.payments) {
+                appData.payments = [];
+            }
         } catch (e) {
             console.error('Erro ao carregar dados:', e);
-            appData = { members: [], expenses: [], customSplits: {} };
+            appData = { members: [], expenses: [], customSplits: {}, payments: [] };
         }
     }
 }
@@ -512,6 +524,12 @@ function calculateBalances() {
         }
     });
     
+    // Aplicar pagamentos aos saldos
+    appData.payments.forEach(payment => {
+        balances[payment.fromId] -= payment.amount;
+        balances[payment.toId] += payment.amount;
+    });
+    
     return balances;
 }
 
@@ -596,8 +614,10 @@ function displaySimplifiedDebts(simplified) {
 function updateUI() {
     updateMembersList();
     updateExpensePayerSelect();
+    updatePaymentSelects();
     updateBalances();
     updateExpensesHistory();
+    updatePaymentsHistory();
     updateCustomSplitInputs();
 }
 
@@ -648,6 +668,28 @@ function updateExpensePayerSelect() {
         option.value = member.id;
         option.textContent = member.name;
         select.appendChild(option);
+    });
+}
+
+function updatePaymentSelects() {
+    const fromSelect = document.getElementById('payment-from');
+    const toSelect = document.getElementById('payment-to');
+    
+    // Limpar selects
+    fromSelect.innerHTML = '<option value="">Selecione quem paga</option>';
+    toSelect.innerHTML = '<option value="">Selecione quem recebe</option>';
+    
+    // Preencher com membros
+    appData.members.forEach(member => {
+        const fromOption = document.createElement('option');
+        fromOption.value = member.id;
+        fromOption.textContent = member.name;
+        fromSelect.appendChild(fromOption);
+        
+        const toOption = document.createElement('option');
+        toOption.value = member.id;
+        toOption.textContent = member.name;
+        toSelect.appendChild(toOption);
     });
 }
 
@@ -741,6 +783,43 @@ function updateExpensesHistory() {
     container.innerHTML = html;
 }
 
+function updatePaymentsHistory() {
+    const container = document.getElementById('payments-list');
+    
+    if (appData.payments.length === 0) {
+        container.innerHTML = '<p>Nenhum pagamento registrado ainda.</p>';
+        return;
+    }
+    
+    let html = '';
+    appData.payments.forEach(payment => {
+        const fromMember = appData.members.find(m => m.id === payment.fromId);
+        const toMember = appData.members.find(m => m.id === payment.toId);
+        const date = new Date(payment.date).toLocaleDateString('pt-BR');
+        
+        html += `
+            <div class="payment-item">
+                <div class="payment-header">
+                    <div class="payment-details">
+                        <strong>${fromMember ? fromMember.name : 'Desconhecido'}</strong> pagou para 
+                        <strong>${toMember ? toMember.name : 'Desconhecido'}</strong>
+                    </div>
+                    <div class="payment-amount">R$ ${payment.amount.toFixed(2)}</div>
+                </div>
+                <div class="payment-description">${payment.description}</div>
+                <div class="payment-date">Data: ${date}</div>
+                <div style="margin-top: 10px;">
+                    <button onclick="removePayment('${payment.id}')" class="btn btn-danger btn-small">
+                        <i class="fas fa-trash"></i> Remover
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
 // Funções de exportação/importação
 function exportData() {
     const dataStr = JSON.stringify(appData, null, 2);
@@ -819,7 +898,7 @@ function handleFileImport(event) {
 
 function clearAllData() {
     if (confirm('Tem certeza que deseja limpar todos os dados? Esta ação não pode ser desfeita.')) {
-        appData = { members: [], expenses: [], customSplits: {} };
+        appData = { members: [], expenses: [], customSplits: {}, payments: [] };
         saveData();
         updateUI();
         alert('Todos os dados foram limpos.');
@@ -827,6 +906,72 @@ function clearAllData() {
 }
 
 // Funções utilitárias
+// Função para registrar pagamento
+function registerPayment() {
+    const fromSelect = document.getElementById('payment-from');
+    const toSelect = document.getElementById('payment-to');
+    const amountInput = document.getElementById('payment-amount');
+    const descriptionInput = document.getElementById('payment-description');
+    
+    const fromId = fromSelect.value;
+    const toId = toSelect.value;
+    const amount = parseFloat(amountInput.value);
+    const description = descriptionInput.value.trim();
+    
+    // Validações
+    if (!fromId || !toId) {
+        alert('Por favor, selecione quem está pagando e quem está recebendo.');
+        return;
+    }
+    
+    if (fromId === toId) {
+        alert('Uma pessoa não pode pagar para si mesma.');
+        return;
+    }
+    
+    if (!amount || amount <= 0) {
+        alert('Por favor, insira um valor válido para o pagamento.');
+        return;
+    }
+    
+    // Criar o pagamento
+    const payment = {
+        id: Date.now().toString(),
+        fromId: fromId,
+        toId: toId,
+        amount: amount,
+        description: description || 'Pagamento',
+        date: new Date().toISOString()
+    };
+    
+    // Adicionar à lista de pagamentos
+    appData.payments.push(payment);
+    
+    // Salvar dados
+    saveData();
+    
+    // Limpar formulário
+    fromSelect.value = '';
+    toSelect.value = '';
+    amountInput.value = '';
+    descriptionInput.value = '';
+    
+    // Atualizar UI
+    updateUI();
+    
+    alert(`Pagamento de R$ ${amount.toFixed(2)} registrado com sucesso!`);
+}
+
+// Função para remover pagamento
+function removePayment(paymentId) {
+    if (confirm('Tem certeza que deseja remover este pagamento?')) {
+        appData.payments = appData.payments.filter(p => p.id !== paymentId);
+        saveData();
+        updateUI();
+        alert('Pagamento removido com sucesso!');
+    }
+}
+
 function formatCurrency(amount) {
     return new Intl.NumberFormat('pt-BR', {
         style: 'currency',

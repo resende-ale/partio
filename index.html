@@ -91,6 +91,48 @@
                 <div id="simplified-debts" class="simplified-debts"></div>
             </section>
 
+            <!-- Seção de Pagamentos -->
+            <section class="section" id="payments-section">
+                <h2><i class="fas fa-money-bill-wave"></i> Registrar Pagamento</h2>
+                <div class="payment-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="payment-from">Quem está pagando:</label>
+                            <select id="payment-from" required>
+                                <option value="">Selecione quem paga</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="payment-to">Quem está recebendo:</label>
+                            <select id="payment-to" required>
+                                <option value="">Selecione quem recebe</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="payment-amount">Valor do pagamento:</label>
+                            <input type="number" id="payment-amount" step="0.01" min="0.01" placeholder="0,00" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="payment-description">Descrição (opcional):</label>
+                            <input type="text" id="payment-description" placeholder="Ex: Pagamento da pizza">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button onclick="registerPayment()" class="btn btn-success">
+                            <i class="fas fa-check"></i> Registrar Pagamento
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Histórico de Pagamentos -->
+                <div class="payments-history">
+                    <h3><i class="fas fa-history"></i> Histórico de Pagamentos</h3>
+                    <div id="payments-list"></div>
+                </div>
+            </section>
+
             <!-- Seção de Histórico -->
             <section class="section" id="history-section">
                 <h2><i class="fas fa-history"></i> Histórico de Despesas</h2>
