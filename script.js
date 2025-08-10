@@ -432,9 +432,7 @@ function updateMembersList() {
             `<div class="pix-key-info">
                 <i class="fas fa-qrcode"></i> ${member.pixKeyType.toUpperCase()}: ${member.pixKey}
              </div>` : 
-            '<div class="pix-key-info no-pix">
-                <i class="fas fa-plus-circle"></i> Adicionar chave PIX
-             </div>';
+            '<div class="pix-key-info no-pix"><i class="fas fa-plus-circle"></i> Adicionar chave PIX</div>';
         
         html += `
             <div class="member-card">
