@@ -596,7 +596,6 @@ function displaySimplifiedDebts(simplified) {
 function updateUI() {
     updateMembersList();
     updateExpensePayerSelect();
-    updateSummary();
     updateBalances();
     updateExpensesHistory();
     updateCustomSplitInputs();
@@ -652,15 +651,7 @@ function updateExpensePayerSelect() {
     });
 }
 
-function updateSummary() {
-    const totalAmount = appData.expenses.reduce((sum, expense) => sum + expense.amount, 0);
-    const memberCount = appData.members.length;
-    const perPerson = memberCount > 0 ? totalAmount / memberCount : 0;
-    
-    document.getElementById('total-amount').textContent = `R$ ${totalAmount.toFixed(2)}`;
-    document.getElementById('per-person').textContent = `R$ ${perPerson.toFixed(2)}`;
-    document.getElementById('member-count').textContent = memberCount;
-}
+
 
 function updateBalances() {
     const balances = calculateBalances();
